@@ -1,27 +1,43 @@
 from flask import Flask,render_template
 
 from data import data
+from data.tours_to_db import data_to_db
+from data.base import Session,create_db
+from data.models import Tour,User
+
 
 app = Flask(__name__)
 
-DEPARTURES = data.departures
+
+@app.context_processor
+def schawel():
+    return dict(departures=data.departures)
+
+# DEPARTURES = data.departures
 
 
 @app.route("/")
 def index():
-    return render_template('index.html',departures=DEPARTURES, tours=data.tours)
+    with Session() as session:
+        tours = session.query(Tour).all()
+        return render_template('index.html', tours=tours)
 
 
-@app.route("/tour/<int:index>")
+@app.route("/tour/<int:index>/")
 def tour(index):
-    tour = data.tours.get(index)
-    return render_template('tour.html',departures=DEPARTURES,tour=tour)
+    with Session() as session:
+        tour = session.query(Tour).where(Tour.id == index).first()
+        return render_template('tour.html',tour=tour)
 
 
 @app.route("/departure/<dep>/")
 def departure(dep):
-    return render_template('departure.html',departures=DEPARTURES)
+    with Session() as session:
+        tours = session.query(Tour).where(Tour.departure == dep).all()
+        return render_template("departure.html", tours=tours,dep=dep)
 
 
 if __name__ == '__main__':
+    create_db()
+    # data_to_db()
     app.run(debug = True)
